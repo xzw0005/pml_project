@@ -2,7 +2,7 @@
 title: "Practical Machine Learning Project Write-Up"
 author: "Xing Learner"
 date: "Thursday, June 18, 2015"
-output: pdf_document
+output: html_document
 ---
 
 # Introduction  
@@ -17,14 +17,13 @@ The [training data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-trai
 ```{r, cache=TRUE, message=FALSE}
 mydata = read.csv("./pml-training.csv", na.strings = c("NA", ""))
 dim(mydata)
-table(mydata$classe)
 missing = apply(mydata, 2, function(x) { sum(is.na(x)) })
 mydata = mydata[, which(missing == 0)]
 dim(mydata)
 ```
 
 Note that the missing values are represented in the forms of both `NA` and blank `""` in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables.  
-For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, `classe`. We see that `classe` is a factor variable which has 5 levels.
+For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, `classe`. 
 
 Additionally, after taking a glance of the dataset, we notice that the first six variables `user_name`, `raw_timestamp_part_1`, `raw_timestamp_part_2`, `cvtd_timestamp`, `new_window`, `num_window` are simply administrative parameters and seem to be irrelevant to our prediction model. Thus, we will delete these 6 variables as well. We will perform this truncation in our data split stage below.
 
@@ -42,7 +41,10 @@ We load the `caret` package, and for **cross validation** purpose, we partition 
 
 # Model Fitting
 
-The `classe` variable has 5 levels: A, B, C, D, and E. Our aim is to build a predictive model to predict the classe level for a given observation. This is a classification problem, and we are going to fit two models. The two commonly used classification algorithms **Random Forest** `rf` and **Gradient Boosting Machine** `gbm` algorithms are used. To reduce the risk of overfitting, a 6-fold cross validation is employed in `fitControl`, rather than the default 4-fold CV. 
+```{r}
+table(mydata$classe)
+```
+We see that `classe` is a factor variable which has 5 levels: A, B, C, D, and E. Our aim is to build a predictive model to predict the classe level for a given observation. This is a classification problem, and we are going to fit two models. The two commonly used classification algorithms **Random Forest** `rf` and **Gradient Boosting Machine** `gbm` algorithms are used. To reduce the risk of overfitting, a 6-fold cross validation is employed in `fitControl`, rather than the default 4-fold CV. 
 
 ```{r, cache=TRUE, warning=FALSE, message=FALSE}
 set.seed(666)
