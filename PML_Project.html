@@ -78,15 +78,11 @@ img {
 <pre class="r"><code>mydata = read.csv(&quot;./pml-training.csv&quot;, na.strings = c(&quot;NA&quot;, &quot;&quot;))
 dim(mydata)</code></pre>
 <pre><code>## [1] 19622   160</code></pre>
-<pre class="r"><code>table(mydata$classe)</code></pre>
-<pre><code>## 
-##    A    B    C    D    E 
-## 5580 3797 3422 3216 3607</code></pre>
 <pre class="r"><code>missing = apply(mydata, 2, function(x) { sum(is.na(x)) })
 mydata = mydata[, which(missing == 0)]
 dim(mydata)</code></pre>
 <pre><code>## [1] 19622    60</code></pre>
-<p>Note that the missing values are represented in the forms of both <code>NA</code> and blank <code>&quot;&quot;</code> in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables.<br />For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, <code>classe</code>. We see that <code>classe</code> is a factor variable which has 5 levels.</p>
+<p>Note that the missing values are represented in the forms of both <code>NA</code> and blank <code>&quot;&quot;</code> in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables.<br />For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, <code>classe</code>.</p>
 <p>Additionally, after taking a glance of the dataset, we notice that the first six variables <code>user_name</code>, <code>raw_timestamp_part_1</code>, <code>raw_timestamp_part_2</code>, <code>cvtd_timestamp</code>, <code>new_window</code>, <code>num_window</code> are simply administrative parameters and seem to be irrelevant to our prediction model. Thus, we will delete these 6 variables as well. We will perform this truncation in our data split stage below.</p>
 <pre class="r"><code># cross validation
 library(caret)
@@ -100,7 +96,11 @@ dim(training)</code></pre>
 </div>
 <div id="model-fitting" class="section level1">
 <h1>Model Fitting</h1>
-<p>The <code>classe</code> variable has 5 levels: A, B, C, D, and E. Our aim is to build a predictive model to predict the classe level for a given observation. This is a classification problem, and we are going to fit two models. The two commonly used classification algorithms <strong>Random Forest</strong> <code>rf</code> and <strong>Gradient Boosting Machine</strong> <code>gbm</code> algorithms are used. To reduce the risk of overfitting, a 6-fold cross validation is employed in <code>fitControl</code>, rather than the default 4-fold CV.</p>
+<pre class="r"><code>table(mydata$classe)</code></pre>
+<pre><code>## 
+##    A    B    C    D    E 
+## 5580 3797 3422 3216 3607</code></pre>
+<p>We see that <code>classe</code> is a factor variable which has 5 levels: A, B, C, D, and E. Our aim is to build a predictive model to predict the classe level for a given observation. This is a classification problem, and we are going to fit two models. The two commonly used classification algorithms <strong>Random Forest</strong> <code>rf</code> and <strong>Gradient Boosting Machine</strong> <code>gbm</code> algorithms are used. To reduce the risk of overfitting, a 6-fold cross validation is employed in <code>fitControl</code>, rather than the default 4-fold CV.</p>
 <pre class="r"><code>set.seed(666)
 fitControl = trainControl(method = &quot;cv&quot;, number = 6)
 # gbm Model Fitting
@@ -117,8 +117,7 @@ rfMod = train(classe ~ ., data = training, method = &quot;rf&quot;,
 <h1>Model Evaluation</h1>
 <p>In this section, we are going to take a look at the prediction performance both on the training data, and on the testing data in case of overfitting.</p>
 <p>First, let’s look at the consusion matrices for the <code>gbm</code> model:</p>
-<pre class="r"><code>library(caret)
-gbmPredTrain = predict(gbmMod)
+<pre class="r"><code>gbmPredTrain = predict(gbmMod)
 confusionMatrix(gbmPredTrain, training$classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
