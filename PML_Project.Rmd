@@ -1,0 +1,103 @@
+---
+title: "Practical Machine Learning Project Write-Up"
+author: "Xing Learner"
+date: "Thursday, June 18, 2015"
+output: html_document
+---
+
+# Introduction  
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+The [Human Activity Recognition dataset](http://groupware.les.inf.puc-rio.br/har) we use for this project is from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the dataset. The aim is to select and build an optimal prediction model to recognize human activities (such as sitting-down and standing-up) on 20 test cases.
+
+# Data Preprocessing
+
+The [training data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and the [testing data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv) for this project are downloaded from the course website of Coursera. 
+```{r, cache=TRUE, message=FALSE}
+mydata = read.csv("./pml-training.csv", na.strings = c("NA", ""))
+dim(mydata)
+table(mydata$classe)
+missing = apply(mydata, 2, function(x) { sum(is.na(x)) })
+mydata = mydata[, which(missing == 0)]
+dim(mydata)
+```
+
+Note that the missing values are represented in the forms of both `NA` and blank `""` in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables.  
+For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, `classe`. We see that `classe` is a factor variable which has 5 levels.
+
+Additionally, after taking a glance of the dataset, we notice that the first six variables `user_name`, `raw_timestamp_part_1`, `raw_timestamp_part_2`, `cvtd_timestamp`, `new_window`, `num_window` are simply administrative parameters and seem to be irrelevant to our prediction model. Thus, we will delete these 6 variables as well. We will perform this truncation in our data split stage below.
+
+```{r, , cache=TRUE, warning=FALSE, message=FALSE}
+# cross validation
+library(caret)
+set.seed(123)
+inTrain = createDataPartition(y = mydata$classe, p = .7, list = FALSE)
+training = mydata[inTrain, -(1:6)]
+testing = mydata[-inTrain, -(1:6)]
+dim(training)
+```
+
+We load the `caret` package, and for **cross validation** purpose, we partition our data into two parts, 70% for training and 30% for testing. Note now we have 54 variables only, and our training set has 13737 observations. 
+
+# Model Fitting
+
+The `classe` variable has 5 levels: A, B, C, D, and E. Our aim is to build a predictive model to predict the classe level for a given observation. This is a classification problem, and we are going to fit two models. The two commonly used classification algorithms **Random Forest** `rf` and **Gradient Boosting Machine** `gbm` algorithms are used. To reduce the risk of overfitting, a 6-fold cross validation is employed in `fitControl`, rather than the default 4-fold CV. 
+
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
+set.seed(666)
+fitControl = trainControl(method = "cv", number = 6)
+# gbm Model Fitting
+set.seed(666)
+gbmMod = train(classe ~ ., data = training, method = "gbm",
+               trControl = fitControl, verbose = FALSE)
+# Random Forest Model Fitting
+set.seed(666)
+rfMod = train(classe ~ ., data = training, method = "rf",
+              trControl = fitControl)
+```
+
+The model fitting process takes quite a while.
+
+# Model Evaluation
+
+In this section, we are going to take a look at the prediction performance both on the training data, and on the testing data in case of overfitting.
+
+First, let's look at the consusion matrices for the `gbm` model:
+```{r}
+gbmPredTrain = predict(gbmMod)
+confusionMatrix(gbmPredTrain, training$classe)
+gbmPredTest = predict(gbmMod, newdata = testing)
+confusionMatrix(gbmPredTest, testing$classe)
+```
+
+We see that on the training data, `gbm` model prediction has an accuracy of 99.26% with Kappa value 99.07%. As we perform this model on the testing data, it has an accuracy of 98.71% with Kappa value 98.37%.
+
+Next, let's look at the confusion matrices for the `rf` model:
+```{r}
+rfPredTrain = predict(rfMod)
+confusionMatrix(rfPredTrain, training$classe)
+rfPredTest = predict(rfMod, newdata = testing)
+confusionMatrix(rfPredTest, testing$classe)
+```
+
+Thus, on the training data, the `rf` model prediction yields a confidence interval of accuracy of (99.97%, 100%), with Kappa value 100%. As we perform this model on the testing data, it still has an accuracy of 99.83% with Kappa value 99.79%.  
+
+The performance of `rf` model is better than that of the `gbm` model. Therefore, we would select the **Random Forest** model to predict our 20 testing cases.
+
+# Results
+
+Let's take a look at our final model first, it uses 27 variables at each split.
+```{r}
+rfMod$finalModel
+```
+
+Finally, we use the fitted **Random Forest** model to predict our 20 testing cases. 
+```{r}
+test20 = read.csv("./pml-testing.csv", na.strings = c("NA", ""))
+test20 = test20[, which(missing == 0)]
+pred20 = predict(rfMod, newdata = test20[-(1:6)])
+pred20
+```
+
+All of the 20 prediction results turn out to be correct after submitting onto the PML course project grading platform.
