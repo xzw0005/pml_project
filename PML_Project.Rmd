@@ -2,7 +2,7 @@
 title: "Practical Machine Learning Project Write-Up"
 author: "Xing Learner"
 date: "Thursday, June 18, 2015"
-output: html_document
+output: pdf_document
 ---
 
 # Introduction  
@@ -64,7 +64,7 @@ The model fitting process takes quite a while.
 In this section, we are going to take a look at the prediction performance both on the training data, and on the testing data in case of overfitting.
 
 First, let's look at the consusion matrices for the `gbm` model:
-```{r}
+```{r, cache=TRUE}
 gbmPredTrain = predict(gbmMod)
 confusionMatrix(gbmPredTrain, training$classe)
 gbmPredTest = predict(gbmMod, newdata = testing)
@@ -74,7 +74,7 @@ confusionMatrix(gbmPredTest, testing$classe)
 We see that on the training data, `gbm` model prediction has an accuracy of 99.26% with Kappa value 99.07%. As we perform this model on the testing data, it has an accuracy of 98.71% with Kappa value 98.37%.
 
 Next, let's look at the confusion matrices for the `rf` model:
-```{r}
+```{r, cache=TRUE}
 rfPredTrain = predict(rfMod)
 confusionMatrix(rfPredTrain, training$classe)
 rfPredTest = predict(rfMod, newdata = testing)
@@ -88,16 +88,16 @@ The performance of `rf` model is better than that of the `gbm` model. Therefore,
 # Results
 
 Let's take a look at our final model first, it uses 27 variables at each split.
-```{r}
+```{r, cache=TRUE}
 rfMod$finalModel
 ```
 
 Finally, we use the fitted **Random Forest** model to predict our 20 testing cases. 
-```{r}
+```{r, cache=TRUE}
 test20 = read.csv("./pml-testing.csv", na.strings = c("NA", ""))
 test20 = test20[, which(missing == 0)]
 pred20 = predict(rfMod, newdata = test20[-(1:6)])
-pred20
+data.frame(pred20)
 ```
 
 All of the 20 prediction results turn out to be correct after submitting onto the PML course project grading platform.

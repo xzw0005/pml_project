@@ -78,21 +78,19 @@ img {
 <pre class="r"><code>mydata = read.csv(&quot;./pml-training.csv&quot;, na.strings = c(&quot;NA&quot;, &quot;&quot;))
 dim(mydata)</code></pre>
 <pre><code>## [1] 19622   160</code></pre>
-<pre class="r"><code>test20 = read.csv(&quot;./pml-testing.csv&quot;, na.strings = c(&quot;NA&quot;, &quot;&quot;))
-missing = apply(mydata, 2, function(x) { sum(is.na(x)) })
+<pre class="r"><code>table(mydata$classe)</code></pre>
+<pre><code>## 
+##    A    B    C    D    E 
+## 5580 3797 3422 3216 3607</code></pre>
+<pre class="r"><code>missing = apply(mydata, 2, function(x) { sum(is.na(x)) })
 mydata = mydata[, which(missing == 0)]
-test20 = test20[, which(missing == 0)]
 dim(mydata)</code></pre>
 <pre><code>## [1] 19622    60</code></pre>
-<p>Note that the missing values are represented in the forms of both <code>NA</code> and blank <code>&quot;&quot;</code> in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables. For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, <code>classe</code>.</p>
+<p>Note that the missing values are represented in the forms of both <code>NA</code> and blank <code>&quot;&quot;</code> in the original datasets. To establish our model, we will first focus on the trainData, which consists of 19622 observations with 160 variables.<br />For simplicity, we are going to remove all variables with missing values. We now have 60 variables, including the one to be predicted, <code>classe</code>. We see that <code>classe</code> is a factor variable which has 5 levels.</p>
 <p>Additionally, after taking a glance of the dataset, we notice that the first six variables <code>user_name</code>, <code>raw_timestamp_part_1</code>, <code>raw_timestamp_part_2</code>, <code>cvtd_timestamp</code>, <code>new_window</code>, <code>num_window</code> are simply administrative parameters and seem to be irrelevant to our prediction model. Thus, we will delete these 6 variables as well. We will perform this truncation in our data split stage below.</p>
 <pre class="r"><code># cross validation
-library(caret)</code></pre>
-<pre><code>## Warning: package 'caret' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: lattice
-## Loading required package: ggplot2</code></pre>
-<pre><code>## Warning: package 'ggplot2' was built under R version 3.1.3</code></pre>
-<pre class="r"><code>set.seed(123)
+library(caret)
+set.seed(123)
 inTrain = createDataPartition(y = mydata$classe, p = .7, list = FALSE)
 training = mydata[inTrain, -(1:6)]
 testing = mydata[-inTrain, -(1:6)]
@@ -108,37 +106,19 @@ fitControl = trainControl(method = &quot;cv&quot;, number = 6)
 # gbm Model Fitting
 set.seed(666)
 gbmMod = train(classe ~ ., data = training, method = &quot;gbm&quot;,
-               trControl = fitControl, verbose = FALSE)</code></pre>
-<pre><code>## Loading required package: gbm</code></pre>
-<pre><code>## Warning: package 'gbm' was built under R version 3.1.3</code></pre>
-<pre><code>## Loading required package: survival
-## Loading required package: splines
-## 
-## Attaching package: 'survival'
-## 
-## The following object is masked from 'package:caret':
-## 
-##     cluster
-## 
-## Loading required package: parallel
-## Loaded gbm 2.1.1
-## Loading required package: plyr</code></pre>
-<pre><code>## Warning: package 'plyr' was built under R version 3.1.3</code></pre>
-<pre class="r"><code># Random Forest Model Fitting
+               trControl = fitControl, verbose = FALSE)
+# Random Forest Model Fitting
 set.seed(666)
 rfMod = train(classe ~ ., data = training, method = &quot;rf&quot;,
               trControl = fitControl)</code></pre>
-<pre><code>## Loading required package: randomForest</code></pre>
-<pre><code>## Warning: package 'randomForest' was built under R version 3.1.3</code></pre>
-<pre><code>## randomForest 4.6-10
-## Type rfNews() to see new features/changes/bug fixes.</code></pre>
 <p>The model fitting process takes quite a while.</p>
 </div>
 <div id="model-evaluation" class="section level1">
 <h1>Model Evaluation</h1>
 <p>In this section, we are going to take a look at the prediction performance both on the training data, and on the testing data in case of overfitting.</p>
 <p>First, let’s look at the consusion matrices for the <code>gbm</code> model:</p>
-<pre class="r"><code>gbmPredTrain = predict(gbmMod)
+<pre class="r"><code>library(caret)
+gbmPredTrain = predict(gbmMod)
 confusionMatrix(gbmPredTrain, training$classe)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
@@ -272,7 +252,7 @@ confusionMatrix(rfPredTest, testing$classe)</code></pre>
 ## Detection Rate         0.2845   0.1930   0.1737   0.1633   0.1839
 ## Detection Prevalence   0.2850   0.1937   0.1740   0.1633   0.1840
 ## Balanced Accuracy      0.9996   0.9983   0.9978   0.9984   0.9999</code></pre>
-<p>Thus, on the training data, the <strong>Random Forest</strong> model prediction yields the confidence interval of accuracy of (0.9997, 1), with Kappa value 100%. As we perform this model on the testing data, it still has an accuracy of 99.8% with Kappa value 99.74%.</p>
+<p>Thus, on the training data, the <code>rf</code> model prediction yields a confidence interval of accuracy of (99.97%, 100%), with Kappa value 100%. As we perform this model on the testing data, it still has an accuracy of 99.83% with Kappa value 99.79%.</p>
 <p>The performance of <code>rf</code> model is better than that of the <code>gbm</code> model. Therefore, we would select the <strong>Random Forest</strong> model to predict our 20 testing cases.</p>
 </div>
 <div id="results" class="section level1">
@@ -294,11 +274,32 @@ confusionMatrix(rfPredTest, testing$classe)</code></pre>
 ## C    0    2 2394    0    0 0.0008347245
 ## D    0    0   10 2242    0 0.0044404973
 ## E    0    0    0    6 2519 0.0023762376</code></pre>
-<p>Finally, we use the selected <strong>Random Forest</strong> model to predict our 20 testing cases.</p>
-<pre class="r"><code>pred20 = predict(rfMod, newdata = test20[-(1:6)])
-pred20</code></pre>
-<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
-## Levels: A B C D E</code></pre>
+<p>Finally, we use the fitted <strong>Random Forest</strong> model to predict our 20 testing cases.</p>
+<pre class="r"><code>test20 = read.csv(&quot;./pml-testing.csv&quot;, na.strings = c(&quot;NA&quot;, &quot;&quot;))
+test20 = test20[, which(missing == 0)]
+pred20 = predict(rfMod, newdata = test20[-(1:6)])
+data.frame(pred20)</code></pre>
+<pre><code>##    pred20
+## 1       B
+## 2       A
+## 3       B
+## 4       A
+## 5       A
+## 6       E
+## 7       D
+## 8       B
+## 9       A
+## 10      A
+## 11      B
+## 12      C
+## 13      B
+## 14      A
+## 15      E
+## 16      E
+## 17      A
+## 18      B
+## 19      B
+## 20      B</code></pre>
 <p>All of the 20 prediction results turn out to be correct after submitting onto the PML course project grading platform.</p>
 </div>
 
